@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.reservaspistas.data.Reserva
 import com.example.reservaspistas.viewmodel.ReservaViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,6 +26,7 @@ fun ReservaScreen(viewModel: ReservaViewModel) {
     var fecha by remember { mutableStateOf("") }
     var hora by remember { mutableStateOf("") }
     var jugadores by remember { mutableStateOf("") }
+
     var nombreBusqueda by remember { mutableStateOf("") }
 
     var estado by remember { mutableStateOf("Activa") }
@@ -32,6 +35,9 @@ fun ReservaScreen(viewModel: ReservaViewModel) {
     val estados = listOf("Activa", "Inactiva")
 
     var reservaEditando by remember { mutableStateOf<Reserva?>(null) }
+
+    var mostrarDatePicker by remember { mutableStateOf(false) }
+    var mostrarTimePicker by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(16.dp)) {
 
@@ -42,29 +48,75 @@ fun ReservaScreen(viewModel: ReservaViewModel) {
         OutlinedTextField(
             value = nombreBusqueda,
             onValueChange = { nombreBusqueda = it },
-            label = { Text("Buscar por nombre") }
+            label = { Text("Buscar por nombre") },
+            modifier = Modifier.fillMaxWidth()
         )
 
         Row {
 
-            Button(onClick = { viewModel.buscar(nombreBusqueda) }) {
+            Button(onClick = {
+                viewModel.buscar(nombreBusqueda)
+            }) {
                 Text("Buscar")
             }
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            Button(onClick = { viewModel.cargarReservas() }) {
+            Button(onClick = {
+                viewModel.cargarReservas()
+            }) {
                 Text("Mostrar todas")
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedTextField(nombre, { nombre = it }, label = { Text("Nombre") })
-        OutlinedTextField(pista, { pista = it }, label = { Text("Pista") })
-        OutlinedTextField(fecha, { fecha = it }, label = { Text("Fecha") })
-        OutlinedTextField(hora, { hora = it }, label = { Text("Hora") })
-        OutlinedTextField(jugadores, { jugadores = it }, label = { Text("Cantidad jugadores") })
+        OutlinedTextField(
+            value = nombre,
+            onValueChange = { nombre = it },
+            label = { Text("Nombre") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = pista,
+            onValueChange = { pista = it },
+            label = { Text("Pista") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = jugadores,
+            onValueChange = { jugadores = it },
+            label = { Text("Cantidad jugadores") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = { mostrarDatePicker = true },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            if (fecha.isEmpty())
+                Text("Seleccionar Fecha")
+            else
+                Text("Fecha: $fecha")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = { mostrarTimePicker = true },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            if (hora.isEmpty())
+                Text("Seleccionar Hora")
+            else
+                Text("Hora: $hora")
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -78,7 +130,9 @@ fun ReservaScreen(viewModel: ReservaViewModel) {
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Estado") },
-                modifier = Modifier.menuAnchor()
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
             )
 
             ExposedDropdownMenu(
@@ -101,49 +155,51 @@ fun ReservaScreen(viewModel: ReservaViewModel) {
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        Button(onClick = {
+        Button(
+            onClick = {
 
-            if (
-                nombre.isBlank() ||
-                pista.isBlank() ||
-                fecha.isBlank() ||
-                hora.isBlank() ||
-                jugadores.isBlank()
-            ) {
-                viewModel.mostrarMensaje("Todos los campos son obligatorios")
-                return@Button
-            }
+                if (
+                    nombre.isBlank() ||
+                    pista.isBlank() ||
+                    fecha.isBlank() ||
+                    hora.isBlank() ||
+                    jugadores.isBlank()
+                ) {
+                    viewModel.mostrarMensaje("Todos los campos son obligatorios")
+                    return@Button
+                }
 
-            val reserva = Reserva(
-                id = reservaEditando?.id ?: 0,
-                nombre = nombre,
-                pista = pista,
-                fecha = fecha,
-                hora = hora,
-                cantidadJugadores = jugadores.toInt(),
-                estado = estado
-            )
+                val reserva = Reserva(
+                    id = reservaEditando?.id ?: 0,
+                    nombre = nombre,
+                    pista = pista,
+                    fecha = fecha,
+                    hora = hora,
+                    cantidadJugadores = jugadores.toInt(),
+                    estado = estado
+                )
 
-            if (reservaEditando == null) {
-                viewModel.insertarReserva(reserva)
-            } else {
-                viewModel.actualizarReserva(reserva)
-                reservaEditando = null
-            }
+                if (reservaEditando == null) {
+                    viewModel.insertarReserva(reserva)
+                } else {
+                    viewModel.actualizarReserva(reserva)
+                    reservaEditando = null
+                }
 
-            nombre = ""
-            pista = ""
-            fecha = ""
-            hora = ""
-            jugadores = ""
+                nombre = ""
+                pista = ""
+                fecha = ""
+                hora = ""
+                jugadores = ""
 
-        }) {
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
 
             if (reservaEditando == null)
                 Text("Agregar Reserva")
             else
                 Text("Actualizar Reserva")
-
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -175,26 +231,29 @@ fun ReservaScreen(viewModel: ReservaViewModel) {
 
                         Row {
 
-                            Button(onClick = {
+                            Button(
+                                onClick = {
 
-                                nombre = reserva.nombre
-                                pista = reserva.pista
-                                fecha = reserva.fecha
-                                hora = reserva.hora
-                                jugadores = reserva.cantidadJugadores.toString()
-                                estado = reserva.estado
+                                    nombre = reserva.nombre
+                                    pista = reserva.pista
+                                    fecha = reserva.fecha
+                                    hora = reserva.hora
+                                    jugadores = reserva.cantidadJugadores.toString()
+                                    estado = reserva.estado
 
-                                reservaEditando = reserva
-
-                            }) {
+                                    reservaEditando = reserva
+                                }
+                            ) {
                                 Text("Editar")
                             }
 
                             Spacer(modifier = Modifier.width(8.dp))
 
-                            Button(onClick = {
-                                viewModel.eliminarReserva(reserva)
-                            }) {
+                            Button(
+                                onClick = {
+                                    viewModel.eliminarReserva(reserva)
+                                }
+                            ) {
                                 Text("Eliminar")
                             }
                         }
@@ -202,5 +261,86 @@ fun ReservaScreen(viewModel: ReservaViewModel) {
                 }
             }
         }
+    }
+
+    if (mostrarDatePicker) {
+
+        val dateState = rememberDatePickerState()
+
+        DatePickerDialog(
+            onDismissRequest = { mostrarDatePicker = false },
+
+            confirmButton = {
+
+                TextButton(
+                    onClick = {
+
+                        val millis = dateState.selectedDateMillis
+
+                        if (millis != null) {
+
+                            val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                            fecha = formatter.format(Date(millis))
+                        }
+
+                        mostrarDatePicker = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+
+            dismissButton = {
+
+                TextButton(
+                    onClick = { mostrarDatePicker = false }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+
+        ) {
+
+            DatePicker(state = dateState)
+        }
+    }
+
+    if (mostrarTimePicker) {
+
+        val timeState = rememberTimePickerState()
+
+        AlertDialog(
+            onDismissRequest = { mostrarTimePicker = false },
+
+            confirmButton = {
+
+                TextButton(
+                    onClick = {
+
+                        val hour = timeState.hour
+                        val minute = timeState.minute
+
+                        hora = String.format("%02d:%02d", hour, minute)
+
+                        mostrarTimePicker = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+
+            dismissButton = {
+
+                TextButton(
+                    onClick = { mostrarTimePicker = false }
+                ) {
+                    Text("Cancelar")
+                }
+            },
+
+            text = {
+                TimePicker(state = timeState)
+            }
+        )
     }
 }
