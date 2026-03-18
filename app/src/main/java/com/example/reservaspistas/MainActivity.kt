@@ -15,39 +15,38 @@ import com.example.reservaspistas.ui.ListaReservasScreen
 import com.example.reservaspistas.ui.ReservaScreen
 import com.example.reservaspistas.viewmodel.ReservaViewModel
 import com.example.reservaspistas.viewmodel.ReservaViewModelFactory
+import com.example.reservaspistas.ui.InicioScreen
 
 class MainActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val database = AppDatabase.Companion.getDatabase(applicationContext)
+        val database = AppDatabase.getDatabase(applicationContext)
         val repository = ReservaRepository(database.reservaDao())
-        val viewModel = ReservaViewModel(repository)
+        val factory = ReservaViewModelFactory(repository)
 
         setContent {
+            val viewModel: ReservaViewModel = viewModel(factory = factory)
 
-            val context = this
-
-            val database = AppDatabase.getDatabase(context)
-            val repository = ReservaRepository(database.reservaDao())
-            val factory = ReservaViewModelFactory(repository)
-
-            val viewModel: ReservaViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
-                factory = factory
-            )
-
-            var pantalla by remember { mutableStateOf("form") }
+            // Estados de navegación
+            var pantalla by remember { mutableStateOf("inicio") }
             var reservaEditar by remember { mutableStateOf<Reserva?>(null) }
 
             when (pantalla) {
+                "inicio" -> InicioScreen(
+                    viewModel = viewModel,
+                    onIrARegistro = {
+                        reservaEditar = null
+                        pantalla = "form"
+                    },
+                    onIrALista = { pantalla = "lista" }
+                )
 
                 "form" -> ReservaScreen(
                     viewModel = viewModel,
                     reservaEditar = reservaEditar,
-                    onIrALista = {
-                        pantalla = "lista"
-                    }
+                    onIrALista = { pantalla = "lista" },
+                    onCancelar = { pantalla = "inicio" }
                 )
 
                 "lista" -> ListaReservasScreen(
@@ -57,8 +56,7 @@ class MainActivity : ComponentActivity() {
                         pantalla = "form"
                     },
                     onVolver = {
-                        reservaEditar = null
-                        pantalla = "form"
+                        pantalla = "inicio"
                     }
                 )
             }

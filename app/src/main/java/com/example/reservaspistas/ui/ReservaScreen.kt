@@ -1,9 +1,7 @@
 package com.example.reservaspistas.ui
 
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -17,12 +15,11 @@ import java.util.*
 fun ReservaScreen(
     viewModel: ReservaViewModel,
     reservaEditar: Reserva? = null,
-    onIrALista: () -> Unit
+    onIrALista: () -> Unit,
+    onCancelar: () -> Unit // <-- Nueva función para el botón cancelar
 ) {
-
     val mensaje by viewModel.mensaje.collectAsState()
 
-    // 🔥 ESTADOS (VACÍOS)
     var nombre by remember { mutableStateOf("") }
     var pista by remember { mutableStateOf("") }
     var fecha by remember { mutableStateOf("") }
@@ -36,9 +33,7 @@ fun ReservaScreen(
     var mostrarDatePicker by remember { mutableStateOf(false) }
     var mostrarTimePicker by remember { mutableStateOf(false) }
 
-    // 🔥 SOLUCIÓN AL PROBLEMA DE EDICIÓN
     LaunchedEffect(reservaEditar) {
-
         if (reservaEditar != null) {
             nombre = reservaEditar.nombre
             pista = reservaEditar.pista
@@ -47,119 +42,82 @@ fun ReservaScreen(
             jugadores = reservaEditar.cantidadJugadores.toString()
             estado = reservaEditar.estado
         } else {
-            nombre = ""
-            pista = ""
-            fecha = ""
-            hora = ""
-            jugadores = ""
-            estado = "Activa"
+            nombre = ""; pista = ""; fecha = ""; hora = ""; jugadores = ""; estado = "Activa"
         }
     }
 
     Column(modifier = Modifier.padding(16.dp)) {
-
-        Text("Registro de Reservas", style = MaterialTheme.typography.headlineMedium)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = { onIrALista() },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Ver lista de reservas")
-        }
+        Text(
+            text = if (reservaEditar == null) "Registro de Reservas" else "Editar Reserva",
+            style = MaterialTheme.typography.headlineMedium
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = nombre,
             onValueChange = { nombre = it },
-            label = { Text("Nombre") },
+            label = { Text("Nombre del Cliente") },
             modifier = Modifier.fillMaxWidth()
         )
 
         OutlinedTextField(
             value = pista,
             onValueChange = { pista = it },
-            label = { Text("Pista") },
+            label = { Text("Número de Pista") },
             modifier = Modifier.fillMaxWidth()
         )
 
         OutlinedTextField(
             value = jugadores,
             onValueChange = { jugadores = it },
-            label = { Text("Cantidad jugadores") },
+            label = { Text("Cantidad de Jugadores") },
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 📅 FECHA
-        Button(
-            onClick = { mostrarDatePicker = true },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (fecha.isEmpty()) Text("Seleccionar Fecha")
-            else Text("Fecha: $fecha")
+        // Botones de Selección de Fecha y Hora
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = { mostrarDatePicker = true }, modifier = Modifier.weight(1f)) {
+                Text(if (fecha.isEmpty()) "Fecha" else fecha)
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { mostrarTimePicker = true }, modifier = Modifier.weight(1f)) {
+                Text(if (hora.isEmpty()) "Hora" else hora)
+            }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 🕒 HORA
-        Button(
-            onClick = { mostrarTimePicker = true },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (hora.isEmpty()) Text("Seleccionar Hora")
-            else Text("Hora: $hora")
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // 🔽 ESTADO
+        // Selector de Estado (Solo visible o relevante si estás editando)
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = !expanded }
         ) {
-
             OutlinedTextField(
                 value = estado,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Estado") },
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth()
+                label = { Text("Estado de la Reserva") },
+                modifier = Modifier.menuAnchor().fillMaxWidth()
             )
-
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 estados.forEach {
                     DropdownMenuItem(
                         text = { Text(it) },
-                        onClick = {
-                            estado = it
-                            expanded = false
-                        }
+                        onClick = { estado = it; expanded = false }
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
+        // BOTONES DE ACCIÓN
         Button(
             onClick = {
-
-                if (
-                    nombre.isBlank() ||
-                    pista.isBlank() ||
-                    fecha.isBlank() ||
-                    hora.isBlank() ||
-                    jugadores.isBlank()
-                ) {
+                if (nombre.isBlank() || pista.isBlank() || fecha.isBlank() || hora.isBlank() || jugadores.isBlank()) {
                     viewModel.mostrarMensaje("Todos los campos son obligatorios")
                     return@Button
                 }
@@ -170,7 +128,7 @@ fun ReservaScreen(
                     pista = pista,
                     fecha = fecha,
                     hora = hora,
-                    cantidadJugadores = jugadores.toInt(),
+                    cantidadJugadores = jugadores.toIntOrNull() ?: 1,
                     estado = estado
                 )
 
@@ -183,75 +141,55 @@ fun ReservaScreen(
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            if (reservaEditar == null)
-                Text("Guardar Reserva")
-            else
-                Text("Actualizar Reserva")
+            Text(if (reservaEditar == null) "Guardar Reserva" else "Actualizar Cambios")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // BOTÓN CANCELAR (Tu idea estratégica)
+        OutlinedButton(
+            onClick = onCancelar,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+        ) {
+            Text("Cancelar y Volver")
         }
 
         Spacer(modifier = Modifier.height(10.dp))
-
-        Text(mensaje)
+        Text(mensaje, color = MaterialTheme.colorScheme.primary)
     }
 
-    // 📅 DATE PICKER
     if (mostrarDatePicker) {
-
         val dateState = rememberDatePickerState()
-
         DatePickerDialog(
             onDismissRequest = { mostrarDatePicker = false },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        val millis = dateState.selectedDateMillis
-                        if (millis != null) {
+                TextButton(onClick = {
+                        dateState.selectedDateMillis?.let { millis ->
+                            val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                            calendar.timeInMillis = millis
+
                             val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                            fecha = formatter.format(Date(millis))
+                            formatter.timeZone = TimeZone.getTimeZone("UTC")
+                            fecha = formatter.format(calendar.time)
                         }
                         mostrarDatePicker = false
-                    }
-                ) {
-                    Text("Aceptar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { mostrarDatePicker = false }) {
-                    Text("Cancelar")
-                }
+                    }) { Text("OK") }
             }
-        ) {
-            DatePicker(state = dateState)
-        }
+        ) { DatePicker(state = dateState) }
     }
 
-    // 🕒 TIME PICKER
     if (mostrarTimePicker) {
-
         val timeState = rememberTimePickerState()
-
         AlertDialog(
             onDismissRequest = { mostrarTimePicker = false },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        val hour = timeState.hour
-                        val minute = timeState.minute
-                        hora = String.format("%02d:%02d", hour, minute)
-                        mostrarTimePicker = false
-                    }
-                ) {
-                    Text("Aceptar")
-                }
+                TextButton(onClick = {
+                    hora = String.format("%02d:%02d", timeState.hour, timeState.minute)
+                    mostrarTimePicker = false
+                }) { Text("OK") }
             },
-            dismissButton = {
-                TextButton(onClick = { mostrarTimePicker = false }) {
-                    Text("Cancelar")
-                }
-            },
-            text = {
-                TimePicker(state = timeState)
-            }
+            text = { TimePicker(state = timeState) }
         )
     }
 }
