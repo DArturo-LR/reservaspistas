@@ -122,6 +122,36 @@ fun ReservaScreen(
                     return@Button
                 }
 
+                // VALIDACIÓN DE FECHA Y HORA PASADA
+                val calendarActual = Calendar.getInstance()
+                val sdfFecha = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                val sdfHora = SimpleDateFormat("HH:mm", Locale.getDefault())
+                
+                val fechaSeleccionada = sdfFecha.parse(fecha)
+                val horaSeleccionada = sdfHora.parse(hora)
+                
+                val calendarSeleccionado = Calendar.getInstance()
+                if (fechaSeleccionada != null && horaSeleccionada != null) {
+                    val calFecha = Calendar.getInstance()
+                    calFecha.time = fechaSeleccionada
+                    
+                    val calHora = Calendar.getInstance()
+                    calHora.time = horaSeleccionada
+                    
+                    calendarSeleccionado.set(
+                        calFecha.get(Calendar.YEAR),
+                        calFecha.get(Calendar.MONTH),
+                        calFecha.get(Calendar.DAY_OF_MONTH),
+                        calHora.get(Calendar.HOUR_OF_DAY),
+                        calHora.get(Calendar.MINUTE)
+                    )
+                }
+
+                if (calendarSeleccionado.before(calendarActual)) {
+                    viewModel.mostrarMensaje("No puedes programar una reserva para una fecha u hora pasada")
+                    return@Button
+                }
+
                 val reserva = Reserva(
                     id = reservaEditar?.id ?: 0,
                     nombre = nombre,
@@ -160,7 +190,6 @@ fun ReservaScreen(
     }
 
     if (mostrarDatePicker) {
-        // Lógica para que el calendario se abra en la fecha ya guardada si estamos editando
         val initialDateMillis = remember(fecha) {
             if (fecha.isNotEmpty()) {
                 val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -175,7 +204,22 @@ fun ReservaScreen(
             }
         }
 
-        val dateState = rememberDatePickerState(initialSelectedDateMillis = initialDateMillis)
+        // Se configura el validador para desactivar días pasados
+        val dateState = rememberDatePickerState(
+            initialSelectedDateMillis = initialDateMillis,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    // Solo permite fechas a partir de hoy (a las 00:00 UTC)
+                    val hoy = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }.timeInMillis
+                    return utcTimeMillis >= hoy
+                }
+            }
+        )
 
         DatePickerDialog(
             onDismissRequest = { mostrarDatePicker = false },
@@ -196,7 +240,6 @@ fun ReservaScreen(
     }
 
     if (mostrarTimePicker) {
-        // Lógica para que el reloj se abra en la hora ya guardada si estamos editando
         val initialHour = remember(hora) {
             if (hora.contains(":")) hora.split(":")[0].toIntOrNull() ?: 0 else 12
         }
